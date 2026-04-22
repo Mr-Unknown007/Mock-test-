@@ -1,6 +1,10 @@
 export default async function handler(req, res) {
   try {
-    const { topic } = req.body;
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Only POST allowed" });
+    }
+
+    const { topic } = req.body || {};
 
     if (!topic) {
       return res.status(400).json({ error: "Topic missing" });
@@ -18,7 +22,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Generate 10 MCQs on ${topic}.
+              text: `Generate 15 MCQs on ${topic}.
 Return ONLY JSON:
 [
  {"q":"question","o":["A","B","C","D"],"a":0,"topic":"concept"}
@@ -30,10 +34,6 @@ Return ONLY JSON:
     );
 
     const data = await response.json();
-
-    if (!data) {
-      return res.status(500).json({ error: "No response from AI" });
-    }
 
     return res.status(200).json(data);
 
