@@ -52,7 +52,7 @@ async function generateAI(){
     return;
   }
 
-  const res = await fetch("/.netlify/functions/ai", {
+  const res = await fetch("/api/ai", {
     method: "POST",
     body: JSON.stringify({ topic })
   });
