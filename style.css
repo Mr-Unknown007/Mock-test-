@@ -1,0 +1,39 @@
+body {
+  font-family: 'Segoe UI';
+  background: linear-gradient(135deg,#667eea,#764ba2);
+  margin:0;
+}
+
+.container {
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
+
+h2 {
+  text-align:center;
+  color:white;
+}
+
+.card {
+  background:white;
+  padding:15px;
+  border-radius:12px;
+  margin:10px 0;
+  box-shadow:0 4px 10px rgba(0,0,0,0.2);
+}
+
+button {
+  padding:10px 20px;
+  border:none;
+  border-radius:8px;
+  background:#667eea;
+  color:white;
+  cursor:pointer;
+}
+
+#timer {
+  text-align:center;
+  color:white;
+  font-size:20px;
+}
