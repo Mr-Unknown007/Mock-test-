@@ -1,47 +1,13 @@
+let questions = [];
+let current = 0;
+let score = 0;
+let wrong = 0;
 let selectedQ = [];
+let weak = {};
 let timer;
-let timeLeft = 600;
+let timeLeft = 1800; // 30 min
 
-function startTimer(){
-  clearInterval(timer);
-  timeLeft = 600;
-
-  timer = setInterval(()=>{
-    let m = Math.floor(timeLeft/60);
-    let s = timeLeft % 60;
-
-    document.getElementById("timer").innerText = `⏱ ${m}:${s}`;
-    timeLeft--;
-
-    if(timeLeft < 0){
-      clearInterval(timer);
-      submitTest();
-    }
-  },1000);
-}
-
-function render(){
-  const quiz = document.getElementById("quiz");
-  quiz.innerHTML = "";
-
-  selectedQ.forEach((q,i)=>{
-    let div = document.createElement("div");
-    div.className="card";
-
-    div.innerHTML = `<b>Q${i+1}. ${q.q}</b><br>` +
-      q.o.map((opt,j)=>
-        `<label><input type='radio' name='q${i}' value='${j}'> ${opt}</label><br>`
-      ).join("");
-
-    quiz.appendChild(div);
-  });
-
-  let btn = document.createElement("button");
-  btn.innerText = "Submit Test";
-  btn.onclick = submitTest;
-  quiz.appendChild(btn);
-}
-
+// ================= AI GENERATE =================
 async function generateAI(){
 
   const topic = document.getElementById("topic").value;
@@ -51,50 +17,137 @@ async function generateAI(){
     return;
   }
 
-  const res = await fetch("/api/ai", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ topic })
-  });
+  document.getElementById("quiz").innerHTML = "Loading questions... ⏳";
 
-  const data = await res.json();
+  try {
 
-  if(data.error){
-    alert(data.error);
+    const res = await fetch("/api/ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ topic })
+    });
+
+    const data = await res.json();
+
+    if(data.error){
+      alert(JSON.stringify(data.error));
+      return;
+    }
+
+    let text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if(!text){
+      alert("AI response error");
+      console.log(data);
+      return;
+    }
+
+    // साफ JSON बनाना
+    text = text.replace(/```json|```/g,"").trim();
+
+    try {
+      selectedQ = JSON.parse(text);
+    } catch(e){
+      alert("JSON parse error");
+      console.log(text);
+      return;
+    }
+
+    // Shuffle
+    selectedQ = shuffleArray(selectedQ);
+
+    // 50 question limit
+    selectedQ = selectedQ.slice(0,50);
+
+    current = 0;
+    score = 0;
+    wrong = 0;
+    weak = {};
+
+    render();
+    startTimer();
+
+  } catch (err) {
+    alert("Server error");
+    console.log(err);
+  }
+}
+
+// ================= RENDER =================
+function render(){
+
+  if(current >= selectedQ.length){
+    finishTest();
     return;
   }
 
-  let text = data.candidates[0].content.parts[0].text;
+  let q = selectedQ[current];
 
-  text = text.replace(/```json|```/g,"").trim();
+  document.getElementById("quiz").innerHTML = `
+    <div class="question">
+      <h3>Q${current+1}. ${q.question}</h3>
 
-  selectedQ = JSON.parse(text);
-
-  render();
-  startTimer();
+      ${q.options.map((opt,i)=>`
+        <div>
+          <button onclick="checkAnswer('${opt.replace(/'/g,"")}')">
+            ${opt}
+          </button>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
-function submitTest(){
+// ================= CHECK =================
+function checkAnswer(ans){
+
+  let q = selectedQ[current];
+
+  if(ans === q.answer){
+    score++;
+  } else {
+    wrong++;
+
+    let topic = q.topic || "General";
+    weak[topic] = (weak[topic] || 0) + 1;
+  }
+
+  current++;
+  render();
+}
+
+// ================= TIMER =================
+function startTimer(){
 
   clearInterval(timer);
 
-  let correct=0, wrong=0;
-  let weak = {};
+  timeLeft = 1800;
 
-  selectedQ.forEach((q,i)=>{
-    const sel = document.querySelector(`input[name='q${i}']:checked`);
+  timer = setInterval(()=>{
+    timeLeft--;
 
-    if(sel && parseInt(sel.value) === q.a){
-      correct++;
-    } else {
-      wrong++;
-      weak[q.topic] = (weak[q.topic] || 0) + 1;
+    let min = Math.floor(timeLeft/60);
+    let sec = timeLeft % 60;
+
+    document.getElementById("timer").innerText =
+      `⏱ ${min}:${sec < 10 ? "0"+sec : sec}`;
+
+    if(timeLeft <= 0){
+      clearInterval(timer);
+      finishTest();
     }
-  });
 
-  let final = correct - (wrong * 0.25);
+  },1000);
+}
+
+// ================= RESULT =================
+function finishTest(){
+
+  clearInterval(timer);
+
+  let final = score - (wrong * 0.25);
 
   let weakTopics = Object.entries(weak)
     .sort((a,b)=>b[1]-a[1])
@@ -103,8 +156,19 @@ function submitTest(){
 
   alert(
 `Score: ${final}
-Correct: ${correct}
+Correct: ${score}
 Wrong: ${wrong}
 Weak Topics: ${weakTopics}`
   );
+
+  document.getElementById("quiz").innerHTML = "<h2>Test Finished ✅</h2>";
+}
+
+// ================= SHUFFLE =================
+function shuffleArray(arr){
+  for(let i = arr.length -1; i>0; i--){
+    let j = Math.floor(Math.random() * (i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
