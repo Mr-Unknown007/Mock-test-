@@ -25,10 +25,11 @@ async function generateAI() {
       return;
     }
 
+    // 👇 IMPORTANT FIX
     document.getElementById("quiz").innerText = data.result;
 
   } catch (err) {
-    alert("Error fetching AI");
-    console.error(err);
+    alert("Error");
+    console.log(err);
   }
 }
