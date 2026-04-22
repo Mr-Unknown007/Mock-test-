@@ -9,6 +9,7 @@ export default async function handler(req, res) {
 
   try {
     const API_KEY = process.env.API_KEY;
+
     if (!API_KEY) {
       return res.status(500).json({ error: "API key missing" });
     }
@@ -22,17 +23,15 @@ export default async function handler(req, res) {
       `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           contents: [
             {
               parts: [
                 {
-                  text: `Generate 5 MCQ questions on ${topic}. 
-Return ONLY JSON format like:
-[
-{"question":"...","options":["A","B","C","D"],"answer":"A"}
-]`
+                  text: `Generate 5 MCQ questions on ${topic} with 4 options and correct answer. Return ONLY JSON array.`
                 }
               ]
             }
@@ -43,18 +42,28 @@ Return ONLY JSON format like:
 
     const data = await response.json();
 
-    let text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    console.log("FULL RESPONSE:", data); // debug
 
-    if (!text) {
-      return res.status(500).json({ error: "AI response empty" });
+    // 🔥 FIX: safe extraction
+    let text = "";
+
+    if (data.candidates && data.candidates.length > 0) {
+      const parts = data.candidates[0].content.parts;
+      text = parts.map(p => p.text).join("");
     }
 
-    // 🔥 JSON extract (important fix)
+    if (!text) {
+      return res.status(500).json({
+        error: "AI response empty",
+        raw: data
+      });
+    }
+
+    // 🔥 JSON clean
     let json;
     try {
       json = JSON.parse(text);
     } catch {
-      // अगर AI extra text दे दे तो clean करो
       const cleaned = text.substring(
         text.indexOf("["),
         text.lastIndexOf("]") + 1
@@ -66,8 +75,8 @@ Return ONLY JSON format like:
 
   } catch (err) {
     res.status(500).json({
-      error: "AI response error",
-      details: err.message
+      error: "Server error",
+      details: err.message,
     });
   }
 }
