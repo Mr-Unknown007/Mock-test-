@@ -1,23 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>AI Mock Test</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>AI Mock Test</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      color: black;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    input {
+      padding: 10px;
+      width: 60%;
+      border-radius: 5px;
+      border: none;
+      margin-right: 10px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      background: #667eea;
+      color: white;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover {
+      background: #5a67d8;
+    }
+  </style>
 </head>
 
 <body>
 
 <div class="container">
-<h2>🔥 AI Mock Test Generator</h2>
+  <h2>🔥 AI Mock Test Generator</h2>
 
-<div class="card">
-<input id="topic" placeholder="Enter topic (OSI, DBMS...)">
-<button onclick="generateAI()">Generate Test</button>
-</div>
+  <div class="card">
+    <input id="topic" placeholder="Enter topic (OSI, DBMS...)" />
+    <button onclick="generateAI()">Generate Test</button>
+  </div>
 
-<div id="timer"></div>
-<div id="quiz"></div>
+  <div id="quiz"></div>
 </div>
 
 <script src="script.js"></script>
