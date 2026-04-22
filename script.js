@@ -2,17 +2,12 @@ let questions = [];
 let current = 0;
 let score = 0;
 let wrong = 0;
-let selectedQ = [];
 let weak = {};
-let timer;
-let timeLeft = 1800; // 30 min
 
-// ================= AI GENERATE =================
-async function generateAI(){
-
+async function generateAI() {
   const topic = document.getElementById("topic").value;
 
-  if(!topic){
+  if (!topic) {
     alert("Enter topic first");
     return;
   }
@@ -20,155 +15,96 @@ async function generateAI(){
   document.getElementById("quiz").innerHTML = "Loading questions... ⏳";
 
   try {
-
     const res = await fetch("/api/ai", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ topic })
+      body: JSON.stringify({ topic }),
     });
 
     const data = await res.json();
 
-    if(data.error){
-      alert(JSON.stringify(data.error));
+    if (data.error) {
+      alert(data.error);
       return;
     }
 
-    let text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if(!text){
-      alert("AI response error");
-      console.log(data);
-      return;
-    }
-
-    // साफ JSON बनाना
-    text = text.replace(/```json|```/g,"").trim();
-
-    try {
-      selectedQ = JSON.parse(text);
-    } catch(e){
-      alert("JSON parse error");
-      console.log(text);
-      return;
-    }
-
-    // Shuffle
-    selectedQ = shuffleArray(selectedQ);
-
-    // 50 question limit
-    selectedQ = selectedQ.slice(0,50);
-
+    questions = data.questions;
     current = 0;
     score = 0;
     wrong = 0;
     weak = {};
 
-    render();
-    startTimer();
+    showQuestion();
 
   } catch (err) {
-    alert("Server error");
-    console.log(err);
+    alert("Error fetching questions");
   }
 }
 
-// ================= RENDER =================
-function render(){
-
-  if(current >= selectedQ.length){
-    finishTest();
+// 🧠 Show question
+function showQuestion() {
+  if (current >= questions.length) {
+    showResult();
     return;
   }
 
-  let q = selectedQ[current];
+  const q = questions[current];
 
-  document.getElementById("quiz").innerHTML = `
-    <div class="question">
-      <h3>Q${current+1}. ${q.question}</h3>
-
-      ${q.options.map((opt,i)=>`
-        <div>
-          <button onclick="checkAnswer('${opt.replace(/'/g,"")}')">
-            ${opt}
-          </button>
-        </div>
-      `).join("")}
-    </div>
+  let html = `
+    <div class="card">
+      <h3>Q${current + 1}. ${q.question}</h3>
   `;
+
+  q.options.forEach((opt, index) => {
+    html += `
+      <div>
+        <button onclick="checkAnswer('${opt}')">${opt}</button>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+
+  document.getElementById("quiz").innerHTML = html;
 }
 
-// ================= CHECK =================
-function checkAnswer(ans){
+// ✅ Check answer
+function checkAnswer(selected) {
+  const q = questions[current];
 
-  let q = selectedQ[current];
-
-  if(ans === q.answer){
+  if (selected === q.answer) {
     score++;
   } else {
     wrong++;
 
-    let topic = q.topic || "General";
+    // weak topic tracking
+    let topic = document.getElementById("topic").value;
     weak[topic] = (weak[topic] || 0) + 1;
   }
 
   current++;
-  render();
+  showQuestion();
 }
 
-// ================= TIMER =================
-function startTimer(){
-
-  clearInterval(timer);
-
-  timeLeft = 1800;
-
-  timer = setInterval(()=>{
-    timeLeft--;
-
-    let min = Math.floor(timeLeft/60);
-    let sec = timeLeft % 60;
-
-    document.getElementById("timer").innerText =
-      `⏱ ${min}:${sec < 10 ? "0"+sec : sec}`;
-
-    if(timeLeft <= 0){
-      clearInterval(timer);
-      finishTest();
-    }
-
-  },1000);
-}
-
-// ================= RESULT =================
-function finishTest(){
-
-  clearInterval(timer);
-
+// 📊 Result
+function showResult() {
   let final = score - (wrong * 0.25);
 
   let weakTopics = Object.entries(weak)
-    .sort((a,b)=>b[1]-a[1])
-    .map(x=>x[0])
+    .sort((a, b) => b[1] - a[1])
+    .map(x => x[0])
     .join(", ");
 
-  alert(
-`Score: ${final}
-Correct: ${score}
-Wrong: ${wrong}
-Weak Topics: ${weakTopics}`
-  );
-
-  document.getElementById("quiz").innerHTML = "<h2>Test Finished ✅</h2>";
-}
-
-// ================= SHUFFLE =================
-function shuffleArray(arr){
-  for(let i = arr.length -1; i>0; i--){
-    let j = Math.floor(Math.random() * (i+1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
+  document.getElementById("quiz").innerHTML = `
+    <div class="card">
+      <h2>Result</h2>
+      <p>Score: ${final}</p>
+      <p>Correct: ${score}</p>
+      <p>Wrong: ${wrong}</p>
+      <p>Weak Topics: ${weakTopics || "None"}</p>
+      <button onclick="location.reload()">Restart</button>
+    </div>
+  `;
 }
