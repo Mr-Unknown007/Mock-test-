@@ -1,0 +1,120 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Mock Test App</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background:#f5f7fb; }
+    h2 { margin-bottom: 10px; }
+    input, select, button { padding: 10px; margin: 6px 0; }
+    .card { background:#fff; padding:15px; border-radius:10px; margin:10px 0; box-shadow:0 2px 6px rgba(0,0,0,0.1);}    
+    .question { margin: 10px 0; }
+    #timer { font-weight:bold; color:#d32f2f; }
+  </style>
+</head>
+<body><h2>🔥 Advanced Mock Test Generator</h2><select id="topic">
+  <option value="osi">OSI Model</option>
+  <option value="dbms">DBMS</option>
+  <option value="network">Networking</option>
+</select>
+<br>
+<button onclick="startTest()">Start Test</button><div id="timer"></div>
+<div id="quiz"></div><script>
+// Question Bank (expandable)
+const bank = {
+  osi: [
+    {q:"OSI layers count?",o:["5","6","7","8"],a:2,topic:"basic"},
+    {q:"Routing layer?",o:["Transport","Network","Session","DL"],a:1,topic:"concept"},
+    {q:"MAC layer?",o:["Network","Transport","DL","Physical"],a:2,topic:"address"},
+    {q:"IP layer?",o:["Network","DL","Transport","Session"],a:0,topic:"address"},
+    {q:"Error detection?",o:["Transport","Network","DL","Session"],a:2,topic:"concept"}
+  ],
+  dbms: [
+    {q:"Primary key?",o:["Unique","Duplicate","Null","None"],a:0,topic:"keys"},
+    {q:"SQL stands for?",o:["Structured","Simple","System","None"],a:0,topic:"basic"}
+  ],
+  network: [
+    {q:"LAN full form?",o:["Local","Large","Logical","None"],a:0,topic:"basic"},
+    {q:"Router works on?",o:["L2","L3","L4","L1"],a:1,topic:"device"}
+  ]
+};
+
+let selectedQ = [];
+let timer;
+let timeLeft = 600; // 10 min
+
+function shuffle(arr){
+  return arr.sort(()=>Math.random()-0.5);
+}
+
+function startTest(){
+  const topic = document.getElementById("topic").value;
+  let questions = [...bank[topic]];
+
+  // Auto generate 50+ by repeating + shuffling
+  while(questions.length < 50){
+    questions = questions.concat(bank[topic]);
+  }
+  questions = shuffle(questions).slice(0,50);
+
+  selectedQ = questions;
+  renderQuiz();
+  startTimer();
+}
+
+function renderQuiz(){
+  const quiz = document.getElementById("quiz");
+  quiz.innerHTML = "";
+
+  selectedQ.forEach((q,i)=>{
+    const div = document.createElement("div");
+    div.className="card";
+    div.innerHTML = `<div class='question'><b>Q${i+1}. ${q.q}</b></div>` +
+      q.o.map((opt,j)=>
+        `<input type='radio' name='q${i}' value='${j}'> ${opt}<br>`
+      ).join("");
+    quiz.appendChild(div);
+  });
+
+  const btn = document.createElement("button");
+  btn.innerText="Submit Test";
+  btn.onclick=check;
+  quiz.appendChild(btn);
+}
+
+function startTimer(){
+  clearInterval(timer);
+  timeLeft = 600;
+  timer = setInterval(()=>{
+    let min = Math.floor(timeLeft/60);
+    let sec = timeLeft%60;
+    document.getElementById("timer").innerText = `⏱ Time: ${min}:${sec}`;
+    timeLeft--;
+    if(timeLeft<0){ clearInterval(timer); check(); }
+  },1000);
+}
+
+function check(){
+  clearInterval(timer);
+  let score=0, wrong=0;
+  let weak={};
+
+  selectedQ.forEach((q,i)=>{
+    const sel=document.querySelector(`input[name='q${i}']:checked`);
+    if(sel && parseInt(sel.value)===q.a){
+      score++;
+    } else {
+      wrong++;
+      weak[q.topic]=(weak[q.topic]||0)+1;
+    }
+  });
+
+  let final = score - (wrong*0.25);
+
+  let weakTopics = Object.entries(weak)
+    .sort((a,b)=>b[1]-a[1])
+    .map(x=>x[0]).join(", ");
+
+  alert(`Score: ${final}\nCorrect: ${score}\nWrong: ${wrong}\nWeak Topics: ${weakTopics}`);
+}
+</script></body>
+</html>
