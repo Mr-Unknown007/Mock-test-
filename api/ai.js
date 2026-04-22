@@ -1,15 +1,12 @@
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Only POST allowed" });
   }
 
   try {
     const API_KEY = process.env.API_KEY;
-
     if (!API_KEY) {
       return res.status(500).json({ error: "API key missing" });
     }
@@ -19,8 +16,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Topic required" });
     }
 
+    // ✅ NEW WORKING ENDPOINT (IMPORTANT)
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: {
@@ -31,7 +29,11 @@ export default async function handler(req, res) {
             {
               parts: [
                 {
-                  text: `Generate 5 MCQ questions on ${topic} with 4 options and correct answer. Return ONLY JSON array.`
+                  text: `Generate 5 MCQ questions on ${topic}. 
+Return ONLY JSON like:
+[
+{"question":"...","options":["A","B","C","D"],"answer":"A"}
+]`
                 }
               ]
             }
@@ -42,15 +44,11 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    console.log("FULL RESPONSE:", data); // debug
+    // 🔥 DEBUG (important)
+    console.log("Gemini RAW:", JSON.stringify(data));
 
-    // 🔥 FIX: safe extraction
-    let text = "";
-
-    if (data.candidates && data.candidates.length > 0) {
-      const parts = data.candidates[0].content.parts;
-      text = parts.map(p => p.text).join("");
-    }
+    // ✅ SAFE EXTRACT
+    let text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!text) {
       return res.status(500).json({
@@ -59,7 +57,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🔥 JSON clean
+    // ✅ CLEAN JSON
     let json;
     try {
       json = JSON.parse(text);
@@ -76,7 +74,7 @@ export default async function handler(req, res) {
   } catch (err) {
     res.status(500).json({
       error: "Server error",
-      details: err.message,
+      details: err.message
     });
   }
 }
